@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=ePread
+GenericName=ePub Reader
+Comment=Read ebooks in ePub format
+Type=Application
+TryExec=epread
+Exec=epread %f
+StartupWMClass=ePread
+Categories=Office;Viewer;
+MimeType=application/epub+zip

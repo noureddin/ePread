@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# vim: set et sw=4 ts=4 :
+
+from PyQt5.QtWidgets import (
+        QApplication,
+        QFileDialog,
+        QStyle,
+        qApp,
+)
+
+import os
+import sys
+
+from win import SingleMainWindow
+from epub import EpubExtractor
+from storage import Storage
+
+storage = Storage('epread')
+
+app = QApplication(sys.argv)
+
+try:
+    thefile = sys.argv[1]
+except:
+    thefile = QFileDialog.getOpenFileName(None, "Open ePub File", "",
+             ";;".join([
+                 "ePub Files (*.epub)",
+                 "All Files (*.*)",
+             ])
+         )[0]
+    if not thefile:  # cancelled
+        sys.exit(0)
+
+if not os.path.isfile(thefile):
+    raise FileNotFoundError(f"The given file is not a valid file: ``{thefile}''")
+
+profilename = os.path.abspath(thefile).replace('[', '_').replace(']', '_').replace('\n', '_')
+
+def quit():
+    # options that may change from systrayicon
+    (invertcolors, memurl, mempos, memcss) = w.getOptions()
+    css = w.view.getCustomCss()
+    if any([memurl, mempos, memcss]):
+        startidx = str(w.view.getCurrentPageIndex()) if memurl else None
+        px,py,zf = w.view.getPageViewPort() if mempos else (None,None,None)
+        if invertcolors is not None: invertcolors = '1' if invertcolors else '0'
+        if memurl is not None: memurl = '1' if memurl else '0'
+        if mempos is not None: mempos = '1' if mempos else '0'
+        if memcss is not None: memcss = '1' if memcss else '0'
+        storage.updateProfile(profilename,
+                        startidx=startidx, posx=px, posy=py, zoom=zf,
+                        css=css, invertcolors=invertcolors,
+                        memurl=memurl, mempos=mempos, memcss=memcss)
+    elif profilename in storage.getAllHistory():
+        storage.deleteProfile(profilename)
+    qApp.quit()
+
+with EpubExtractor(thefile) as (title, urls):
+    prof = storage.getHistory(profilename)
+    prof['url'] = urls
+    prof['title'] = title
+    icon = app.style().standardIcon(QStyle.SP_ComputerIcon)
+    w = SingleMainWindow(prof, storage, quit, icon)
+    w.show()
+    app.exit(app.exec())
+
